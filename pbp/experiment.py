@@ -3,7 +3,9 @@ and running experiments."""
 
 import torch
 
+from .callbacks import CallbackListFactory
 from .factory import ObjectFactory, EmptyFactory, CallableFactory
+from .trainer import Trainer
 
 
 class Experiment:
@@ -16,11 +18,14 @@ class Experiment:
     _active_experiment = None
 
     def __init__(self, model, train_data, val_data=EmptyFactory(None),
-                 optimizer=None, callbacks=None, trainer=None):
+                 optimizer=None, callbacks=[], trainer=None):
         self.model_factory = self._get_model_factory(model)
         self.train_data_factory = \
             self._get_dataset_factory( train_data, "train_data")
         self.val_data_factory = self._get_dataset_factory(val_data, "val_data")
+        self.optimizer_factory = self._get_optimizer_factory(optimizer)
+        self.callback_factory = CallbackListFactory(*callbacks)
+        self.trainer_factory = self._get_trainer_factory(trainer)
 
         self._items = {}
 
@@ -54,6 +59,30 @@ class Experiment:
                           "pbp.factory.ObjectFactory, callable) but it was none "
                           "of the above.").format(namespace))
 
+    def _get_optimizer_factory(self, optimizer):
+        if isinstance(optimizer, torch.optim.Optimizer):
+            return EmptyFactory(optimizer)
+        elif isinstance(optimizer, ObjectFactory):
+            return optimizer
+        elif callable(optimizer):
+            return CallableFactory(optimizer)
+
+        raise ValueError(("The passed optimizer should be an instance of "
+                          "(torch.optim.Optimizer, pbp.factory.ObjectFactory, "
+                          "callable) but it was none of the above."))
+
+    def _get_trainer_factory(self, trainer):
+        if isinstance(trainer, Trainer):
+            return EmptyFactory(trainer)
+        elif isinstance(trainer, ObjectFactory):
+            return trainer
+        elif callable(trainer):
+            return CallableFactory(trainer)
+
+        raise ValueError(("The passed trainer should be an instance of "
+                          "(pbp.trainer.Trainer, pbp.factory.ObjectFactory, "
+                          "callable) but it was none of the above"))
+
     def __getitem__(self, key):
         return self._items[key]
 
@@ -86,21 +115,21 @@ class Experiment:
         # Perform the training loop
         self.callback.on_train_start(self)
         try:
-            while not self.trainer.finished:
+            while not self.trainer.finished(self):
                 # One training epoch
                 self.callback.on_epoch_start(self)
-                for batch_idx, batch in self.train_data:
+                for batch in self.train_data:
                     self.callback.on_train_batch_start(self)
-                    self.trainer.train_step(batch_idx, batch)
+                    self.trainer.train_step(self, batch)
                     self.callback.on_train_batch_stop(self)
                 self.callback.on_epoch_stop(self)
 
                 # One validation epoch if needed
-                if self.trainer.validate:
+                if self.trainer.validate(self):
                     self.callback.on_validation_start(self)
-                    for batch_idx, batch in self.val_data:
+                    for batch in self.val_data:
                         self.callback.on_val_batch_start(self)
-                        self.trainer.val_step(batch_idx, batch)
+                        self.trainer.val_step(self, batch)
                         self.callback.on_val_batch_stop(self)
                     self.callback.on_validation_stop(self)
         finally:

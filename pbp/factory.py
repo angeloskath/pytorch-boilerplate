@@ -24,6 +24,21 @@ class EmptyFactory(ObjectFactory):
         return self._object
 
 
+class FactoryList(ObjectFactory):
+    def __init__(self, factories):
+        self.factories = factories
+
+    def add_to_parser(self, parser):
+        for f in self.factories:
+            f.add_to_parser(f)
+
+    def from_dict(self, arguments):
+        return [
+            f.from_dict(arguments)
+            for f in self.factories
+        ]
+
+
 class CallableFactory(ObjectFactory):
     """CallableFactory creates an ObjectFactory instance from a callable using
     Python's reflection to define the arguments, argument types and default
