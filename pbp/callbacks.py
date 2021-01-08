@@ -23,6 +23,12 @@ class Callback:
     def on_train_batch_stop(self, experiment):
         pass
 
+    def on_validation_start(self, experiment):
+        pass
+
+    def on_validation_stop(self, experiment):
+        pass
+
     def on_val_batch_start(self, experiment):
         pass
 
@@ -57,6 +63,14 @@ class CallbackList(Callback):
     def on_train_batch_stop(self, experiment):
         for c in self.callbacks:
             c.on_train_batch_stop(experiment)
+
+    def on_validation_start(self, experiment):
+        for c in self.callbacks:
+            c.on_validation_start(experiment)
+
+    def on_validation_stop(self, experiment):
+        for c in self.callbacks:
+            c.on_validation_stop(experiment)
 
     def on_val_batch_start(self, experiment):
         for c in self.callbacks:

@@ -58,7 +58,7 @@ class CallableFactory(ObjectFactory):
 
     def add_to_parser(self, parser):
         arg_pattern = self.arg_pattern
-        for parameter in sig.parameters:
+        for parameter in self._signature.parameters.values():
             type = (
                 parameter.annotation
                 if parameter.annotation is not Parameter.empty
@@ -83,7 +83,7 @@ class CallableFactory(ObjectFactory):
         kwargs = {}
 
         arg_pattern = self.arg_pattern
-        for parameter in sig.parameters:
+        for parameter in self._signature.parameters.values():
             # Assemble the key
             key = arg_pattern.format(parameter.name)
 

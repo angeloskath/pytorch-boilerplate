@@ -7,3 +7,7 @@ __maintainer__ = "Angelos Katharopoulos"
 __email__ = "angelos.katharopoulos@idiap.ch"
 __url__ = ""
 __version__ = "0.1"
+
+
+from .experiment import Experiment
+from .trainer import create_trainer

@@ -1,6 +1,8 @@
 """Module that provides the Experiment class which is responsible for managing
 and running experiments."""
 
+import argparse
+
 import torch
 
 from .callbacks import CallbackListFactory
@@ -42,11 +44,9 @@ class Experiment:
                           "callable) but it was none of the above."))
 
     def _get_dataset_factory(self, data, namespace):
-        if isinstance(train_data, torch.utils.data.DataLoader):
+        if isinstance(data, torch.utils.data.DataLoader):
             return EmptyFactory(data)
-        #elif isinstance(train_data, torch.utils.data.Dataset):
-        #    raise NotImplementedError()
-        elif isinstance(train_data, ObjectFactory):
+        elif isinstance(data, ObjectFactory):
             return data
         elif callable(model):
             return CallableFactory(
@@ -83,6 +83,22 @@ class Experiment:
                           "(pbp.trainer.Trainer, pbp.factory.ObjectFactory, "
                           "callable) but it was none of the above"))
 
+    def _collect_arguments(self, argv):
+        parser = argparse.ArgumentParser()
+
+        self.train_data_factory.add_to_parser(parser)
+        self.val_data_factory.add_to_parser(parser)
+        self.model_factory.add_to_parser(parser)
+        self.optimizer_factory.add_to_parser(parser)
+        self.callback_factory.add_to_parser(parser)
+        self.trainer_factory.add_to_parser(parser)
+
+        args = parser.parse_args(argv)
+        args = vars(args)
+        args["experiment"] = self
+
+        return args
+
     def __getitem__(self, key):
         return self._items[key]
 
@@ -96,7 +112,7 @@ class Experiment:
                                 "for `active` to work."))
         return self._active_experiment
 
-    def run(self):
+    def run(self, argv=None):
         """Execute the experiment by collecting the arguments, creating the
         data loaders, models, callbacks, optimizers etc and then use the
         trainer to actually train."""
@@ -104,7 +120,7 @@ class Experiment:
 
         # Collect the arguments from all argument sources and build all the
         # components for the experiment
-        arguments = self.arguments = self._collect_arguments()
+        arguments = self.arguments = self._collect_arguments(argv)
         self.train_data = self.train_data_factory.from_dict(arguments)
         self.val_data = self.val_data_factory.from_dict(arguments)
         self.model = self.model_factory.from_dict(arguments)

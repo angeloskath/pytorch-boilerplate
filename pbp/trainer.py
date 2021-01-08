@@ -15,10 +15,10 @@ class Trainer:
     def validate(self, experiment):
         raise NotImplementedError()
 
-    def train_step(self, experiment, batch_idx, batch):
+    def train_step(self, experiment, batch):
         raise NotImplementedError()
 
-    def val_step(self, experiment, batch_idx, batch):
+    def val_step(self, experiment, batch):
         raise NotImplementedError()
 
 
@@ -39,17 +39,19 @@ class BaseTrainer(Trainer):
     def validate(self, experiment):
         return isinstance(experiment.val_data, torch.utils.data.DataLoader)
 
-    def train_step(self, experiment, batch_idx, batch):
+    def train_step(self, experiment, batch):
         model = experiment.model
         optimizer = experiment.optimizer
 
         # Put the model in training mode and zero the gradients if needed
-        model.train()
+        if not model.training:
+            model.train()
         if (self.current_steps % self.grad_accumulate) == 0:
             optimizer.zero_grad()
 
-        # Compute the loss
+        # Compute the loss and the gradients
         loss = self._compute_loss(experiment, model, batch)
+        loss.backward()
 
         # Increase the number of steps and perform a gradient update if needed
         self.current_steps += 1
@@ -60,7 +62,8 @@ class BaseTrainer(Trainer):
         model = experiment.model
 
         # Put the model in evaluation mode and 
-        model.eval()
+        if model.training:
+            model.eval()
 
         # Compute and log the validation metrics
         self._compute_validation(experiment, model, batch)
