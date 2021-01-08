@@ -7,6 +7,7 @@ import torch
 
 from .callbacks import CallbackListFactory
 from .factory import ObjectFactory, EmptyFactory, CallableFactory
+from .optimizers import SingleOptimizerFactory
 from .trainer import Trainer
 
 
@@ -66,6 +67,8 @@ class Experiment:
             return optimizer
         elif callable(optimizer):
             return CallableFactory(optimizer)
+        elif optimizer is None:
+            return SingleOptimizerFactory()
 
         raise ValueError(("The passed optimizer should be an instance of "
                           "(torch.optim.Optimizer, pbp.factory.ObjectFactory, "

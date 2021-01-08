@@ -28,6 +28,7 @@ class Net(torch.nn.Module):
     def forward(self, x):
         return self.nn(x)
 
+
 def training_step(experiment, model, batch):
     x, y = batch
     y_hat = model(x)
@@ -36,19 +37,12 @@ def training_step(experiment, model, batch):
 
     return loss
 
+
 def validation_step(experiment, model, batch):
     x, y = batch
     y_hat = model(x)
     acc = (y_hat.argmax(dim=-1) == y).float().mean()
     print(acc.item())
-
-
-def get_optimizer(lr:float = 0.1, momentum:float = 0.9, experiment=None):
-    return torch.optim.SGD(
-        experiment.model.parameters(),
-        lr=lr,
-        momentum=momentum
-    )
 
 
 if __name__ == "__main__":
@@ -69,7 +63,6 @@ if __name__ == "__main__":
         model=Net((1, 28, 28), 10),
         train_data=torch.utils.data.DataLoader(mnist, batch_size=256),
         val_data=torch.utils.data.DataLoader(val_mnist, batch_size=256),
-        optimizer=get_optimizer,
         trainer=create_trainer(training_step, validation_step)
     )
     exp.run()

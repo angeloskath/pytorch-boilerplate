@@ -1,7 +1,4 @@
-"""Implement the callback interface and the callback list object to treat many
-callbacks as one."""
-
-from .factory import ObjectFactory, EmptyFactory, FactoryList
+from ..factory import ObjectFactory, EmptyFactory, FactoryList
 
 
 class Callback:
@@ -98,3 +95,4 @@ class CallbackListFactory(FactoryList):
 
     def from_dict(self, arguments):
         return CallbackList(*super().from_dict(arguments))
+
