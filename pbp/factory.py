@@ -30,7 +30,7 @@ class FactoryList(ObjectFactory):
 
     def add_to_parser(self, parser):
         for f in self.factories:
-            f.add_to_parser(f)
+            f.add_to_parser(parser)
 
     def from_dict(self, arguments):
         return [

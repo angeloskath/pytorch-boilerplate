@@ -2,8 +2,12 @@
 and running experiments."""
 
 import argparse
+import os
+from os import path
 
 import torch
+import yaml
+from yaml import Loader
 
 from .callbacks import CallbackListFactory
 from .factory import ObjectFactory, EmptyFactory, CallableFactory
@@ -86,9 +90,24 @@ class Experiment:
                           "(pbp.trainer.Trainer, pbp.factory.ObjectFactory, "
                           "callable) but it was none of the above"))
 
-    def _collect_arguments(self, argv):
-        parser = argparse.ArgumentParser()
+    def _get_default_output_dir(self):
+        return path.join(
+            os.getcwd(),
+            "experiment"
+        )
 
+    def _collect_arguments(self, argv):
+        # Define the parser
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            "--config",
+            help="Load the configuration from this file"
+        )
+        parser.add_argument(
+            "--output_dir",
+            default=self._get_default_output_dir(),
+            help="Use this directory as the root for writing the results"
+        )
         self.train_data_factory.add_to_parser(parser)
         self.val_data_factory.add_to_parser(parser)
         self.model_factory.add_to_parser(parser)
@@ -96,7 +115,17 @@ class Experiment:
         self.callback_factory.add_to_parser(parser)
         self.trainer_factory.add_to_parser(parser)
 
+        # Parse the arguments once in order to get the config file to get
+        # default values from
         args = parser.parse_args(argv)
+        if args.config is not None:
+            with open(args["config"], "r") as f:
+                config_args = yaml.load(args["config"], Loader=Loader)
+            args = argparse.Namespace(**config_args)
+            args = parser.parse_args(argv, args)
+
+        # Transform the arguments into a dictionary add the experiment and
+        # return them
         args = vars(args)
         args["experiment"] = self
 
@@ -135,6 +164,8 @@ class Experiment:
         self.callback.on_train_start(self)
         try:
             while not self.trainer.finished(self):
+                self.trainer.start_epoch(self)
+
                 # One training epoch
                 self.callback.on_epoch_start(self)
                 for batch in self.train_data:

@@ -1,4 +1,4 @@
-from ..factory import ObjectFactory, EmptyFactory, FactoryList
+from ..factory import ObjectFactory, EmptyFactory, FactoryList, CallableFactory
 
 
 class Callback:

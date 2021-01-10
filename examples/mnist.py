@@ -9,6 +9,7 @@ import torch
 import torchvision
 
 from pbp import Experiment, create_trainer
+from pbp.callbacks import ModelCheckpoint, TxtLogger
 
 
 class Net(torch.nn.Module):
@@ -33,7 +34,7 @@ def training_step(experiment, model, batch):
     x, y = batch
     y_hat = model(x)
     loss = torch.nn.functional.cross_entropy(y_hat, y)
-    print(loss.item())
+    experiment["logger"].log("loss", loss.item())
 
     return loss
 
@@ -42,7 +43,7 @@ def validation_step(experiment, model, batch):
     x, y = batch
     y_hat = model(x)
     acc = (y_hat.argmax(dim=-1) == y).float().mean()
-    print(acc.item())
+    experiment["logger"].log("val_acc", acc.item())
 
 
 if __name__ == "__main__":
@@ -63,6 +64,10 @@ if __name__ == "__main__":
         model=Net((1, 28, 28), 10),
         train_data=torch.utils.data.DataLoader(mnist, batch_size=256),
         val_data=torch.utils.data.DataLoader(val_mnist, batch_size=256),
-        trainer=create_trainer(training_step, validation_step)
+        trainer=create_trainer(training_step, validation_step),
+        callbacks=[
+            ModelCheckpoint.factory,
+            TxtLogger()
+        ]
     )
     exp.run()

@@ -6,7 +6,14 @@ import torch
 
 
 class Trainer:
+    @property
+    def current_epoch(self):
+        raise NotImplementedError()
+
     def start_epoch(self, experiment):
+        raise NotImplementedError()
+
+    def set_epoch(self, experiment, epoch):
         raise NotImplementedError()
 
     def finished(self, experiment):
@@ -27,14 +34,21 @@ class BaseTrainer(Trainer):
         self.epochs = epochs
         self.grad_accumulate = grad_accumulate
 
-        self.current_epoch = 0
-        self.current_steps = 0
+        self._current_epoch = 0
+        self._current_steps = 0
+
+    @property
+    def current_epoch(self):
+        return self._current_epoch
 
     def start_epoch(self, experiment):
-        self.current_epoch += 1
+        self._current_epoch += 1
+
+    def set_epoch(self, experiment, epoch):
+        self._current_epoch = epoch
 
     def finished(self, experiment):
-        return self.current_epoch >= self.epochs
+        return self._current_epoch >= self.epochs
 
     def validate(self, experiment):
         return isinstance(experiment.val_data, torch.utils.data.DataLoader)
@@ -46,7 +60,7 @@ class BaseTrainer(Trainer):
         # Put the model in training mode and zero the gradients if needed
         if not model.training:
             model.train()
-        if (self.current_steps % self.grad_accumulate) == 0:
+        if (self._current_steps % self.grad_accumulate) == 0:
             optimizer.zero_grad()
 
         # Compute the loss and the gradients
@@ -54,8 +68,8 @@ class BaseTrainer(Trainer):
         loss.backward()
 
         # Increase the number of steps and perform a gradient update if needed
-        self.current_steps += 1
-        if (self.current_steps % self.grad_accumulate) == 0:
+        self._current_steps += 1
+        if (self._current_steps % self.grad_accumulate) == 0:
             optimizer.step()
 
     def val_step(self, experiment, batch):
