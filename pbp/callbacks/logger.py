@@ -1,13 +1,36 @@
 """Logger callback logs scalars to different files so that they can be
 processed later."""
 
+from collections import defaultdict
 import os
 from os import path
+import sys
 
 from .base import Callback
 
 
-class TxtLogger(Callback):
+class LoggerList:
+    def __init__(self, logger_a, logger_b):
+        self.logger_a = logger_a
+        self.logger_b = logger_b
+
+    def log(self, key, value):
+        self.logger_a.log(key, value)
+        self.logger_b.log(key, value)
+
+
+class Logger(Callback):
+    def log(self, key, value):
+        raise NotImplementedError()
+
+    def on_train_start(self, experiment):
+        if "logger" in experiment:
+            experiment["logger"] = LoggerList(experiment["logger"], self)
+        else:
+            experiment["logger"] = self
+
+
+class TxtLogger(Logger):
     """Logger stores scalars to files for later processing."""
     def __init__(self):
         self._files = {}
@@ -38,9 +61,6 @@ class TxtLogger(Callback):
             )
         self._values.clear()
 
-    def on_train_start(self, experiment):
-        experiment["logger"] = self
-
     def on_train_stop(self, experiment):
         for k, f in self._files.items():
             f.close()
@@ -51,3 +71,62 @@ class TxtLogger(Callback):
 
     def on_val_batch_stop(self, experiment):
         self._write_values(experiment)
+
+
+class StdoutLogger(Logger):
+    """Log scalars to stdout."""
+    class AverageMeter:
+        def __init__(self):
+            self._value = 0.0
+            self._count = 0
+
+        def __iadd__(self, other):
+            if isinstance(other, StdoutLogger.AverageMeter):
+                self._value += other._value
+                self._count += other._count
+            else:
+                self._value += other
+                self._count += 1
+            return self
+
+        @property
+        def value(self):
+            return self._value/self._count
+
+    def __init__(self):
+        self._values = defaultdict(StdoutLogger.AverageMeter)
+
+    def log(self, key, value):
+        self._values[key] += value
+
+    def _write_values(self, experiment):
+        msg = " - ".join([
+            "{}: {}".format(k, v.value) for k, v in self._values.items()
+        ])
+
+        if sys.stdout.isatty():
+            msg += "\b"*len(msg)
+        else:
+            msg += "\n"
+
+        print(msg, flush=True, end="")
+
+    def _clear_values(self):
+        if sys.stdout.isatty() and len(self._values) > 0:
+            print()
+        self._values.clear()
+
+    def on_epoch_start(self, experiment):
+        self._clear_values()
+
+    def on_train_batch_stop(self, experiment):
+        self._write_values(experiment)
+
+    def on_validation_start(self, experiment):
+        self._clear_values()
+
+    def on_val_batch_stop(self, experiment):
+        self._write_values(experiment)
+
+    def on_train_stop(self, experiment):
+        self._clear_values()

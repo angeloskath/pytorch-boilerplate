@@ -36,6 +36,13 @@ class Experiment:
 
         self._items = {}
 
+    @staticmethod
+    def active():
+        if Experiment._active_experiment is None:
+            raise RuntimeError(("An experiment needs to be running "
+                                "for `active` to work."))
+        return Experiment._active_experiment
+
     def _get_model_factory(self, model):
         if isinstance(model, torch.nn.Module):
             return EmptyFactory(model)
@@ -104,6 +111,13 @@ class Experiment:
             help="Load the configuration from this file"
         )
         parser.add_argument(
+            "--verbose",
+            type=int,
+            default=0,
+            help=("Control the verbosity of several logging components "
+                  "(default: 0 which means quiet)")
+        )
+        parser.add_argument(
             "--output_dir",
             default=self._get_default_output_dir(),
             help="Use this directory as the root for writing the results"
@@ -131,24 +145,20 @@ class Experiment:
 
         return args
 
+    def __contains__(self, key):
+        return key in self._items
+
     def __getitem__(self, key):
         return self._items[key]
 
     def __setitem__(self, key, val):
         self._items[key] = val
 
-    @property
-    def active(self):
-        if self._active_experiment is None:
-            raise RuntimeError(("An experiment needs to be running "
-                                "for `active` to work."))
-        return self._active_experiment
-
     def run(self, argv=None):
         """Execute the experiment by collecting the arguments, creating the
         data loaders, models, callbacks, optimizers etc and then use the
         trainer to actually train."""
-        self._active_experiment = self
+        Experiment._active_experiment = self
 
         # Collect the arguments from all argument sources and build all the
         # components for the experiment
@@ -183,5 +193,5 @@ class Experiment:
                         self.callback.on_val_batch_stop(self)
                     self.callback.on_validation_stop(self)
         finally:
-            self._active_experiment = None
+            Experiment._active_experiment = None
             self.callback.on_train_stop(self)

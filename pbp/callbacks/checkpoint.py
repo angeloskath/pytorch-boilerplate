@@ -48,11 +48,15 @@ class ModelCheckpoint(Callback):
             return
 
         last_checkpoint = path.join(checkpoint_dir, sorted(checkpoints)[-1])
+        if experiment.arguments["verbose"] > 0:
+            print("Loading from checkpoint: {!r}".format(last_checkpoint))
         data = torch.load(last_checkpoint, map_location="cpu")
 
         experiment.trainer.set_epoch(experiment, data["epoch"])
         experiment.model.load_state_dict(data["model_state"])
         if "optimizer_state" in data:
+            if experiment.arguments["verbose"] > 0:
+                print("Loading optimizer from checkpoint")
             experiment.optimizer.load_state_dict(data["optimizer_state"])
 
     def on_epoch_stop(self, experiment):
