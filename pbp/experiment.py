@@ -60,7 +60,7 @@ class Experiment:
             return EmptyFactory(data)
         elif isinstance(data, ObjectFactory):
             return data
-        elif callable(model):
+        elif callable(data):
             return CallableFactory(
                 data,
                 namespace=namespace
@@ -122,6 +122,13 @@ class Experiment:
             default=self._get_default_output_dir(),
             help="Use this directory as the root for writing the results"
         )
+        parser.add_argument(
+            "--cuda",
+            default=torch.cuda.is_available(),
+            type=bool,
+            help=("Set the device to cuda (default: "
+                  "{})").format(torch.cuda.is_available())
+        )
         self.train_data_factory.add_to_parser(parser)
         self.val_data_factory.add_to_parser(parser)
         self.model_factory.add_to_parser(parser)
@@ -154,6 +161,20 @@ class Experiment:
     def __setitem__(self, key, val):
         self._items[key] = val
 
+    def _batch_to_cuda(self, batch, cuda):
+        if not cuda:
+            return
+
+        if torch.is_tensor(batch):
+            return batch.cuda()
+        if isinstance(batch, (list, tuple)):
+            return [self._batch_to_cuda(b, cuda) for b in batch]
+        if isinstance(batch, dict):
+            return {
+                k: self._batch_to_cuda(v, cuda)
+                for k, v in batch.items()
+            }
+
     def run(self, argv=None):
         """Execute the experiment by collecting the arguments, creating the
         data loaders, models, callbacks, optimizers etc and then use the
@@ -170,6 +191,10 @@ class Experiment:
         self.callback = self.callback_factory.from_dict(arguments)
         self.trainer = self.trainer_factory.from_dict(arguments)
 
+        # Set model to the correct device
+        if arguments["cuda"]:
+            self.model.cuda()
+
         # Perform the training loop
         self.callback.on_train_start(self)
         try:
@@ -179,6 +204,7 @@ class Experiment:
                 # One training epoch
                 self.callback.on_epoch_start(self)
                 for batch in self.train_data:
+                    batch = self._batch_to_cuda(batch, arguments["cuda"])
                     self.callback.on_train_batch_start(self)
                     self.trainer.train_step(self, batch)
                     self.callback.on_train_batch_stop(self)
@@ -188,6 +214,7 @@ class Experiment:
                 if self.trainer.validate(self):
                     self.callback.on_validation_start(self)
                     for batch in self.val_data:
+                        batch = self._batch_to_cuda(batch, arguments["cuda"])
                         self.callback.on_val_batch_start(self)
                         self.trainer.val_step(self, batch)
                         self.callback.on_val_batch_stop(self)
