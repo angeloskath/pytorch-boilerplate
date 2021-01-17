@@ -80,7 +80,8 @@ class BaseTrainer(Trainer):
             model.eval()
 
         # Compute and log the validation metrics
-        self._compute_validation(experiment, model, batch)
+        with torch.no_grad():
+            self._compute_validation(experiment, model, batch)
 
     def _compute_loss(self, experiment, model, batch):
         pass
