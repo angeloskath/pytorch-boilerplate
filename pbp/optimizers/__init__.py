@@ -47,7 +47,9 @@ class SingleOptimizerFactory(ObjectFactory):
         if optimizer == "sgd":
             return torch.optim.SGD(
                 model.parameters(),
-                lr=arguments["lr"]
+                lr=arguments["lr"],
+                momentum=arguments["sgd_momentum"],
+                weight_decay=arguments["weight_decay"]
             )
 
 
