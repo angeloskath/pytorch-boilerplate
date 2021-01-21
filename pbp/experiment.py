@@ -105,7 +105,7 @@ class Experiment:
 
     def _collect_arguments(self, argv):
         # Define the parser
-        parser = argparse.ArgumentParser()
+        parser = argparse.ArgumentParser(conflict_handler="resolve")
         parser.add_argument(
             "--config",
             help="Load the configuration from this file"

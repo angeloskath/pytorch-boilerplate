@@ -53,6 +53,7 @@ class ModelCheckpoint(Callback):
         data = torch.load(last_checkpoint, map_location="cpu")
 
         experiment.trainer.set_epoch(experiment, data["epoch"])
+        experiment.trainer.set_steps(experiment, data["steps"])
         experiment.model.load_state_dict(data["model_state"])
         if "optimizer_state" in data:
             if experiment.arguments["verbose"] > 0:
@@ -65,6 +66,7 @@ class ModelCheckpoint(Callback):
 
         data = {}
         data["epoch"] = experiment.trainer.current_epoch
+        data["steps"] = experiment.trainer.current_steps
         data["model_state"] = experiment.model.state_dict()
         if self.save_optimizer:
             data["optimizer_state"] = experiment.optimizer.state_dict()
@@ -72,7 +74,7 @@ class ModelCheckpoint(Callback):
         checkpoint_file = path.join(
             experiment.arguments["output_dir"],
             "checkpoints",
-            self.model_path.format(data["epoch"])
+            self.model_path.format(data["steps"])
         )
         if not path.exists(path.dirname(checkpoint_file)):
             os.makedirs(path.dirname(checkpoint_file))

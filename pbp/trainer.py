@@ -47,6 +47,13 @@ class BaseTrainer(Trainer):
     def set_epoch(self, experiment, epoch):
         self._current_epoch = epoch
 
+    @property
+    def current_steps(self):
+        return self._current_steps
+
+    def set_steps(self, experiment, steps):
+        self._current_steps = steps
+
     def finished(self, experiment):
         return self._current_epoch >= self.epochs
 
