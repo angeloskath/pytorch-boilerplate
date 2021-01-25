@@ -163,7 +163,7 @@ class Experiment:
 
     def _batch_to_cuda(self, batch, cuda):
         if not cuda:
-            return
+            return batch
 
         if torch.is_tensor(batch):
             return batch.cuda()
