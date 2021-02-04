@@ -10,4 +10,4 @@ __version__ = "0.1"
 
 
 from .experiment import Experiment
-from .trainer import create_trainer
+from .trainer import FunctionTrainer, create_trainer
