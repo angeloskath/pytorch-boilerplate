@@ -140,8 +140,8 @@ class Experiment:
         # default values from
         args = parser.parse_args(argv)
         if args.config is not None:
-            with open(args["config"], "r") as f:
-                config_args = yaml.load(args["config"], Loader=Loader)
+            with open(args.config, "r") as f:
+                config_args = yaml.load(f, Loader=Loader)
             args = argparse.Namespace(**config_args)
             args = parser.parse_args(argv, args)
 
