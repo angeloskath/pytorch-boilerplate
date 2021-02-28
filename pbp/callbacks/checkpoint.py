@@ -21,17 +21,6 @@ class ModelCheckpoint(Callback):
         self.save_optimizer = save_optimizer
         self.save_frequency = save_frequency
 
-    @classmethod
-    def factory(
-        cls,
-        model_path:str = "{:06}.ckpt",
-        resume_from_checkpoint:bool = True,
-        save_optimizer:bool = True,
-        save_frequency:int = 1
-    ):
-        return cls(model_path, resume_from_checkpoint, save_optimizer,
-                   save_frequency)
-
     def on_train_start(self, experiment):
         if not self.resume_from_checkpoint:
             return
