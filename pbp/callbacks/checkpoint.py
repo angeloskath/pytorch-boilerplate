@@ -11,10 +11,10 @@ class ModelCheckpoint(Callback):
     as well as resuming from the latest """
     def __init__(
         self,
-        model_path="{:06d}.ckpt",
-        resume_from_checkpoint=True,
-        save_optimizer=True,
-        save_frequency=1
+        model_path:str = "{:06d}.ckpt",
+        resume_from_checkpoint:bool = True,
+        save_optimizer:bool = True,
+        save_frequency:int = 1
     ):
         self.model_path = model_path
         self.resume_from_checkpoint = resume_from_checkpoint
