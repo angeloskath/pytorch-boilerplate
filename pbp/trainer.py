@@ -30,9 +30,11 @@ class Trainer:
 
 
 class BaseTrainer(Trainer):
-    def __init__(self, epochs: int = 1, grad_accumulate: int = 1):
+    def __init__(self, epochs: int = 1, grad_accumulate: int = 1,
+                 grad_clip:float = 0.0):
         self.epochs = epochs
         self.grad_accumulate = grad_accumulate
+        self.grad_clip = grad_clip
 
         self._current_epoch = 0
         self._current_steps = 0
@@ -77,6 +79,11 @@ class BaseTrainer(Trainer):
         # Increase the number of steps and perform a gradient update if needed
         self._current_steps += 1
         if (self._current_steps % self.grad_accumulate) == 0:
+            if self.grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(
+                    model.parameters(),
+                    self.grad_clip
+                )
             optimizer.step()
 
     def val_step(self, experiment, batch):
@@ -99,8 +106,8 @@ class BaseTrainer(Trainer):
 
 class FunctionTrainer(BaseTrainer):
     def __init__(self, train_step, val_step, epochs: int = 1,
-                 grad_accumulate: int = 1):
-        super().__init__(epochs, grad_accumulate)
+                 grad_accumulate: int = 1, grad_clip:float = 0.0):
+        super().__init__(epochs, grad_accumulate, grad_clip)
 
         self._train_step = train_step
         self._val_step = val_step
