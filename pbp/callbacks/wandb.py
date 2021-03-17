@@ -67,10 +67,13 @@ class WandB(Logger):
         self._values.clear()
         self._validation_batches += 1
 
-    def on_epoch_stop(self, experiment):
+    def on_epoch_start(self, experiment):
         if not self.per_epoch:
             return
 
-        self._values["epoch"] += experiment.trainer.current_epoch
+        if len(self._values) == 0:
+            return
+
+        self._values["epoch"] += experiment.trainer.current_epoch-1
         wandb.log({k: v.average_value for (k, v) in self._values.items()})
         self._values.clear()
