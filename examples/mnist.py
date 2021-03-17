@@ -10,6 +10,7 @@ import torchvision
 
 from pbp import Experiment, create_trainer
 from pbp.callbacks import ModelCheckpoint, StdoutLogger, TxtLogger
+from pbp.callbacks.wandb import WandB
 
 
 class Net(torch.nn.Module):
@@ -66,9 +67,9 @@ if __name__ == "__main__":
         val_data=torch.utils.data.DataLoader(val_mnist, batch_size=256),
         trainer=create_trainer(training_step, validation_step),
         callbacks=[
-            ModelCheckpoint.factory,
+            ModelCheckpoint,
             StdoutLogger(),
-            TxtLogger()
+            WandB
         ]
     )
     exp.run()

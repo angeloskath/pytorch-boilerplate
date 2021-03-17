@@ -6,6 +6,7 @@ import os
 from os import path
 import sys
 
+from ..utils import AverageMeter
 from .base import Callback
 
 
@@ -75,33 +76,16 @@ class TxtLogger(Logger):
 
 class StdoutLogger(Logger):
     """Log scalars to stdout."""
-    class AverageMeter:
-        def __init__(self):
-            self._value = 0.0
-            self._count = 0
-
-        def __iadd__(self, other):
-            if isinstance(other, StdoutLogger.AverageMeter):
-                self._value += other._value
-                self._count += other._count
-            else:
-                self._value += other
-                self._count += 1
-            return self
-
-        @property
-        def value(self):
-            return self._value/self._count
-
     def __init__(self):
-        self._values = defaultdict(StdoutLogger.AverageMeter)
+        self._values = defaultdict(AverageMeter)
 
     def log(self, key, value):
         self._values[key] += value
 
     def _write_values(self, experiment):
         msg = " - ".join([
-            "{}: {}".format(k, v.value) for k, v in self._values.items()
+            "{}: {}".format(k, v.average_value)
+            for k, v in self._values.items()
         ])
 
         if sys.stdout.isatty():
