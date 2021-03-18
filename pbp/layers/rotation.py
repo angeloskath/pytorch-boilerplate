@@ -56,7 +56,17 @@ class SVDO(torch.nn.Module):
         shape = x.shape[:-1]
         M = self.linear(x).view(*(shape + (self.out_dims, self.out_dims)))
 
+        # PyTorch's SVD is very slow in CUDA so perform the operation in cpu
+        if self.out_dims < 10:
+            M = M.cpu()
+
         U, S, V = torch.svd(M)
+
+        # and move it back to gpu if it was in the gpu
+        if self.out_dims < 10:
+            U = U.to(x.device)
+            S = S.to(x.device)
+            V = V.to(x.device)
 
         if self.enforce_rotation:
             S_hat = torch.ones_like(S)
