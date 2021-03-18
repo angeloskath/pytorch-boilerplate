@@ -17,14 +17,16 @@ class WandB(Logger):
 
     Arguments
     ---------
-        project: str, the project name to use in weights and biases
-                 (default: '')
-        watch: bool, use wandb.watch() on the model (default: True)
-        log_frequency: int, the log frequency passed to wandb.watch
-                       (default: 10)
+        wandb_project: str, the project name to use in weights and biases
+                       (default: '')
+        wandb_watch: bool, use wandb.watch() on the model (default: True)
+        wandb_per_epoch: bool, log the metrics per epoch or per update
+                         (default: True)
+        wandb_log_frequency: int, the log frequency passed to wandb.watch
+                             (default: 10)
     """
     def __init__(self, wandb_project:str = "", wandb_watch:bool = True,
-                 wabdb_per_epoch:bool = True, wandb_log_frequency:int = 10):
+                 wandb_per_epoch:bool = True, wandb_log_frequency:int = 10):
         self.project = wandb_project
         self.watch = wandb_watch
         self.log_frequency = wandb_log_frequency
