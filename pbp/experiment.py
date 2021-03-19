@@ -2,6 +2,7 @@
 and running experiments."""
 
 import argparse
+from contextlib import contextmanager
 import os
 from os import path
 
@@ -175,10 +176,11 @@ class Experiment:
                 for k, v in batch.items()
             }
 
-    def run(self, argv=None):
-        """Execute the experiment by collecting the arguments, creating the
-        data loaders, models, callbacks, optimizers etc and then use the
-        trainer to actually train."""
+    @contextmanager
+    def prepare(self, argv=None):
+        """Create the data loaders, models, callbacks, optimizers, etc and
+        yield in order for code to use the experiment. See run() for a usage
+        example."""
         Experiment._active_experiment = self
 
         # Collect the arguments from all argument sources and build all the
@@ -191,34 +193,54 @@ class Experiment:
         self.callback = self.callback_factory.from_dict(arguments)
         self.trainer = self.trainer_factory.from_dict(arguments)
 
-        # Set model to the correct device
-        if arguments["cuda"]:
-            self.model.cuda()
-
-        # Perform the training loop
-        self.callback.on_train_start(self)
         try:
-            while not self.trainer.finished(self):
-                self.trainer.start_epoch(self)
-
-                # One training epoch
-                self.callback.on_epoch_start(self)
-                for batch in self.train_data:
-                    batch = self._batch_to_cuda(batch, arguments["cuda"])
-                    self.callback.on_train_batch_start(self)
-                    self.trainer.train_step(self, batch)
-                    self.callback.on_train_batch_stop(self)
-                self.callback.on_epoch_stop(self)
-
-                # One validation epoch if needed
-                if self.trainer.validate(self):
-                    self.callback.on_validation_start(self)
-                    for batch in self.val_data:
-                        batch = self._batch_to_cuda(batch, arguments["cuda"])
-                        self.callback.on_val_batch_start(self)
-                        self.trainer.val_step(self, batch)
-                        self.callback.on_val_batch_stop(self)
-                    self.callback.on_validation_stop(self)
+            yield None
         finally:
             Experiment._active_experiment = None
-            self.callback.on_train_stop(self)
+
+            self.arguments = None
+            self.train_data = None
+            self.val_data = None
+            self.model = None
+            self.optimizer = None
+            self.callback = None
+            self.trainer = None
+
+    def run(self, argv=None):
+        """Execute the experiment by collecting the arguments, creating the
+        data loaders, models, callbacks, optimizers etc and then use the
+        trainer to actually train."""
+        with self.prepare(argv):
+            # Make local variable copy
+            cuda = self.arguments["cuda"]
+
+            # Set model to the correct device
+            if cuda:
+                self.model.cuda()
+
+            # Perform the training loop
+            self.callback.on_train_start(self)
+            try:
+                while not self.trainer.finished(self):
+                    self.trainer.start_epoch(self)
+
+                    # One training epoch
+                    self.callback.on_epoch_start(self)
+                    for batch in self.train_data:
+                        batch = self._batch_to_cuda(batch, cuda)
+                        self.callback.on_train_batch_start(self)
+                        self.trainer.train_step(self, batch)
+                        self.callback.on_train_batch_stop(self)
+                    self.callback.on_epoch_stop(self)
+
+                    # One validation epoch if needed
+                    if self.trainer.validate(self):
+                        self.callback.on_validation_start(self)
+                        for batch in self.val_data:
+                            batch = self._batch_to_cuda(batch, cuda)
+                            self.callback.on_val_batch_start(self)
+                            self.trainer.val_step(self, batch)
+                            self.callback.on_val_batch_stop(self)
+                        self.callback.on_validation_stop(self)
+            finally:
+                self.callback.on_train_stop(self)
