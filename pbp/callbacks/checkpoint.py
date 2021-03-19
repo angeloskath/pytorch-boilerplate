@@ -11,12 +11,14 @@ class ModelCheckpoint(Callback):
     as well as resuming from the latest """
     def __init__(
         self,
-        model_path:str = "{:06d}.ckpt",
+        checkpoint_pattern:str = "{:06d}.ckpt",
+        checkpoint_file:str = "",
         resume_from_checkpoint:bool = True,
         save_optimizer:bool = True,
-        save_frequency:int = 1
+        save_frequency:int = 1,
     ):
-        self.model_path = model_path
+        self.checkpoint_pattern = checkpoint_pattern
+        self.checkpoint_file = checkpoint_file
         self.resume_from_checkpoint = resume_from_checkpoint
         self.save_optimizer = save_optimizer
         self.save_frequency = save_frequency
@@ -25,18 +27,22 @@ class ModelCheckpoint(Callback):
         if not self.resume_from_checkpoint:
             return
 
-        checkpoint_dir = path.join(
-            experiment.arguments["output_dir"],
-            "checkpoints"
-        )
-        if not path.exists(checkpoint_dir):
-            return
+        if self.checkpoint_file != "" and path.exists(self.checkpoint_file):
+            last_checkpoint = self.checkpoint_file
+        else:
+            checkpoint_dir = path.join(
+                experiment.arguments["output_dir"],
+                "checkpoints"
+            )
+            if not path.exists(checkpoint_dir):
+                return
 
-        checkpoints = os.listdir(checkpoint_dir)
-        if len(checkpoints) == 0:
-            return
+            checkpoints = os.listdir(checkpoint_dir)
+            if len(checkpoints) == 0:
+                return
 
-        last_checkpoint = path.join(checkpoint_dir, sorted(checkpoints)[-1])
+            last_checkpoint = path.join(checkpoint_dir, sorted(checkpoints)[-1])
+
         if experiment.arguments["verbose"] > 0:
             print("Loading from checkpoint: {!r}".format(last_checkpoint))
         data = torch.load(last_checkpoint, map_location="cpu")
@@ -63,7 +69,7 @@ class ModelCheckpoint(Callback):
         checkpoint_file = path.join(
             experiment.arguments["output_dir"],
             "checkpoints",
-            self.model_path.format(data["steps"])
+            self.checkpoint_pattern.format(data["steps"])
         )
         if not path.exists(path.dirname(checkpoint_file)):
             os.makedirs(path.dirname(checkpoint_file))
