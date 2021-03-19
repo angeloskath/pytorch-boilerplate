@@ -244,3 +244,26 @@ class Experiment:
                         self.callback.on_validation_stop(self)
             finally:
                 self.callback.on_train_stop(self)
+
+    def validate(self, argv=None):
+        """Execute just a validation run."""
+        with self.prepare(argv):
+            # Make local variable copy
+            cuda = self.arguments["cuda"]
+
+            # Set model to the correct device
+            if cuda:
+                self.model.cuda()
+
+            # Perform the training loop
+            self.callback.on_train_start(self)
+            try:
+                self.callback.on_validation_start(self)
+                for batch in self.val_data:
+                    batch = self._batch_to_cuda(batch, cuda)
+                    self.callback.on_val_batch_start(self)
+                    self.trainer.val_step(self, batch)
+                    self.callback.on_val_batch_stop(self)
+                self.callback.on_validation_stop(self)
+            finally:
+                self.callback.on_train_stop(self)
