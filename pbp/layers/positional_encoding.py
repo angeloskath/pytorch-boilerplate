@@ -1,6 +1,6 @@
 """Implement positional encoding layers."""
 
-from math import log, tau as two_pi
+from math import log, tau as two_pi, sqrt
 
 import torch
 
@@ -83,4 +83,5 @@ class RFF(torch.nn.Module):
 
     def forward(self, x):
         bx = torch.einsum("...i,ji->...j", x, self.beta)
-        return torch.cat([torch.cos(bx), torch.sin(bx)], dim=-1)
+        scale = sqrt(1 / len(self.beta))
+        return torch.cat([torch.cos(bx), torch.sin(bx)], dim=-1) * scale
