@@ -7,6 +7,7 @@ from fast_transformers.builders import TransformerEncoderBuilder
 
 from pbp import Experiment, create_trainer
 from pbp.callbacks import StdoutLogger
+from pbp.callbacks.lr_schedule import WarmupLR, MultiplicativeLRSchedule
 from pbp.layers.perceiver import Perceiver
 from pbp.layers.positional_encoding import FixedPositionalEncoding
 
@@ -33,14 +34,52 @@ class MNISTPerceiver(torch.nn.Module):
 
     def forward(self, images):
         B = len(images)
-        x = torch.linspace(-1, 1, images.shape[3])[None, None, None, :]
-        y = torch.linspace(-1, 1, images.shape[2])[None, None, :, None]
-        x = x.repeat(*(images.shape[:-1] + (1,)))
-        y = y.repeat(*(images.shape[:-2] + (1,) + images.shape[-1:]))
+        x = torch.linspace(-1, 1, images.shape[3], device=images.device)
+        y = torch.linspace(-1, 1, images.shape[2], device=images.device)
+        x = x[None, None, None, :].repeat(*(images.shape[:-1] + (1,)))
+        y = y[None, None, :, None].repeat(*(images.shape[:-2] + (1,) + images.shape[-1:]))
         images = torch.stack([x, y, images*2 - 1], dim=-1)
         images = self.pe(images).view(B, -1, 3*32)
         images = self.perceiver(images)
         return self.fc(images.mean(1))
+
+
+class MNISTTransformer(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.pe = FixedPositionalEncoding()
+        self.transformer = TransformerEncoderBuilder.from_kwargs(
+            n_layers=8,
+            n_heads=3,
+            query_dimensions=32,
+            value_dimensions=32,
+            attention_type="full"
+        ).get()
+        self.class_embedding = torch.nn.Parameter(torch.randn(1, 1, 96))
+        self.fc = torch.nn.Linear(32*3, 10)
+
+    def forward(self, images):
+        B = len(images)
+        x = torch.linspace(-1, 1, images.shape[3], device=images.device)
+        y = torch.linspace(-1, 1, images.shape[2], device=images.device)
+        x = x[None, None, None, :].repeat(*(images.shape[:-1] + (1,)))
+        y = y[None, None, :, None].repeat(*(images.shape[:-2] + (1,) + images.shape[-1:]))
+        images = torch.stack([x, y, images*2 - 1], dim=-1)
+        images = self.pe(images).view(B, -1, 3*32)
+        ce = self.class_embedding.repeat(B, 1, 1)
+        images = torch.cat([ce, images], dim=1)
+        images = self.transformer(images)
+        return self.fc(images[:, 0])
+
+
+def get_model(model_type:str = "perceiver"):
+    if model_type == "perceiver":
+        return MNISTPerceiver()
+    elif model_type == "transformer":
+        return MNISTTransformer()
+    else:
+        raise NotImplementedError()
 
 
 def training_step(experiment, model, batch):
@@ -59,6 +98,16 @@ def validation_step(experiment, model, batch):
     experiment["logger"].log("val_acc", acc.item())
 
 
+def make_dataloader(dset):
+    def inner(batch_size:int = 256):
+        return torch.utils.data.DataLoader(
+            dset,
+            batch_size=batch_size,
+            shuffle=True
+        )
+    return inner
+
+
 if __name__ == "__main__":
     mnist = torchvision.datasets.FashionMNIST(
         "/tmp/",
@@ -74,12 +123,14 @@ if __name__ == "__main__":
     )
 
     exp = Experiment(
-        model=MNISTPerceiver,
-        train_data=torch.utils.data.DataLoader(mnist, batch_size=256),
-        val_data=torch.utils.data.DataLoader(val_mnist, batch_size=256),
+        model=get_model,
+        train_data=make_dataloader(mnist),
+        val_data=make_dataloader(val_mnist),
         trainer=create_trainer(training_step, validation_step),
         callbacks=[
-            StdoutLogger(),
+            WarmupLR,
+            MultiplicativeLRSchedule,
+            StdoutLogger,
         ]
     )
     exp.run()
