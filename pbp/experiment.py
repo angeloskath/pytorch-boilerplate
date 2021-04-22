@@ -175,6 +175,7 @@ class Experiment:
                 k: self._batch_to_cuda(v, cuda)
                 for k, v in batch.items()
             }
+        return batch
 
     @contextmanager
     def prepare(self, argv=None):
