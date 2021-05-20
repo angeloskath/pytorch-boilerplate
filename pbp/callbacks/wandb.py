@@ -24,13 +24,17 @@ class WandB(Logger):
                          (default: True)
         wandb_log_frequency: int, the log frequency passed to wandb.watch
                              (default: 10)
-    """
+        wandb_run_id: str, the run id in order to resume a previously preempted
+                      run (default: '')
+"""
     def __init__(self, wandb_project:str = "", wandb_watch:bool = True,
-                 wandb_per_epoch:bool = True, wandb_log_frequency:int = 10):
+                 wandb_per_epoch:bool = True, wandb_log_frequency:int = 10,
+                 wandb_run_id:str = ""):
         self.project = wandb_project
         self.watch = wandb_watch
         self.log_frequency = wandb_log_frequency
         self.per_epoch = wandb_per_epoch
+        self.run_id = wandb_run_id
         self._values = defaultdict(AverageMeter)
         self._validation_batches = 0
 
@@ -43,7 +47,9 @@ class WandB(Logger):
         # Init the run
         wandb.init(
             project=(self.project or None),
-            config=dict(experiment.arguments.items())
+            id=(self.run_id or None),
+            config=dict(experiment.arguments.items()),
+            resume="allow"
         )
 
         if self.watch:
