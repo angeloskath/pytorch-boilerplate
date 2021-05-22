@@ -31,10 +31,11 @@ class Trainer:
 
 class BaseTrainer(Trainer):
     def __init__(self, epochs: int = 1, grad_accumulate: int = 1,
-                 grad_clip:float = 0.0):
+                 grad_clip:float = 0.0, validate_every:int = 1):
         self.epochs = epochs
         self.grad_accumulate = grad_accumulate
         self.grad_clip = grad_clip
+        self.validate_every = validate_every
 
         self._current_epoch = 0
         self._current_steps = 0
@@ -60,7 +61,10 @@ class BaseTrainer(Trainer):
         return self._current_epoch >= self.epochs
 
     def validate(self, experiment):
-        return isinstance(experiment.val_data, torch.utils.data.DataLoader)
+        return (
+            isinstance(experiment.val_data, torch.utils.data.DataLoader) and
+            (self.current_epoch % self.validate_every) == 0
+        )
 
     def train_step(self, experiment, batch):
         model = experiment.model
@@ -106,8 +110,9 @@ class BaseTrainer(Trainer):
 
 class FunctionTrainer(BaseTrainer):
     def __init__(self, train_step, val_step, epochs: int = 1,
-                 grad_accumulate: int = 1, grad_clip:float = 0.0):
-        super().__init__(epochs, grad_accumulate, grad_clip)
+                 grad_accumulate: int = 1, grad_clip:float = 0.0,
+                 validate_every:int = 1):
+        super().__init__(epochs, grad_accumulate, grad_clip, validate_every)
 
         self._train_step = train_step
         self._val_step = val_step
