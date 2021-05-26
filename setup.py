@@ -55,7 +55,12 @@ def setup_package():
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.6",
         ],
-        packages=find_packages(exclude=["docs", "tests", "scripts", "examples"])
+        packages=find_packages(exclude=["docs", "tests", "scripts", "examples"]),
+        entry_points={
+            "console_scripts": [
+                "ddp_config_server = pbp.scripts.ddp_config_server:main"
+            ]
+        }
     )
 
 

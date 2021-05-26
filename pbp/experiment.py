@@ -35,6 +35,8 @@ class Experiment:
         self.callback_factory = CallbackListFactory(*callbacks)
         self.trainer_factory = self._get_trainer_factory(trainer)
 
+        self.rank = 0
+
         self._items = {}
 
     @staticmethod
