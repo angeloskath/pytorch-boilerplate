@@ -52,7 +52,7 @@ def ddp_coordinate(uri, our_hostname):
     """
     # Connect to the ddp server
     ctx = zmq.Context()
-    socket = zmq.socket(zmq.REQ)
+    socket = ctx.socket(zmq.REQ)
     socket.connect(uri)
 
     # Register our selves and ask for the master and our rank
