@@ -80,8 +80,8 @@ def rank_zero_only(f):
 def rank_zero_method(f):
     """Decorator that executes f only if the passed experiment has rank 0. This
     is used with distributed data parallel to train on multiple nodes."""
-    def inner(experiment):
+    def inner(self, experiment):
         if experiment.rank != 0:
             return
-        return f(experiment)
+        return f(self, experiment)
     return inner

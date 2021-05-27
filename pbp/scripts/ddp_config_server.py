@@ -38,6 +38,12 @@ def main(argv=None):
         default="tcp://*:1234",
         help="Set the uri for the server to bind to (default: tcp://*:1234)"
     )
+    parser.add_argument(
+        "--persistent",
+        action="store_true",
+        help=("Wait indefinitely to distribute rank and master information "
+              "for many runs")
+    )
 
     args = parser.parse_args(argv)
 
@@ -48,12 +54,15 @@ def main(argv=None):
     socket = context.socket(zmq.REP)
     socket.bind(args.bind_address)
 
-    run = DistributedRun()
     try:
-        while True:
-            host = str(socket.recv(), "utf-8")
-            master, rank = run.add_client(host)
-            socket.send(bytes("{} {} {}".format(master, rank, world_size), "utf-8"))
+        rank = -1
+        while args.persistent or rank < 0:
+            rank = -1
+            run = DistributedRun()
+            while rank+1 < world_size:
+                host = str(socket.recv(), "utf-8")
+                master, rank = run.add_client(host)
+                socket.send(bytes("{} {} {}".format(master, rank, world_size), "utf-8"))
 
     except KeyboardInterrupt:
         pass
