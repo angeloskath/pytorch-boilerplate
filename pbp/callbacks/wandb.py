@@ -8,7 +8,7 @@ except ImportError:
     pass
 
 
-from ..utils import AverageMeter
+from ..utils import AverageMeter, rank_zero_method
 from .logger import Logger
 
 
@@ -27,7 +27,7 @@ class WandB(Logger):
                                    (default: 1000)
         wandb_run_id: str, the run id in order to resume a previously preempted
                       run (default: '')
-"""
+    """
     def __init__(self, wandb_project:str = "", wandb_watch:bool = True,
                  wandb_per_epoch:bool = True, wandb_log_frequency:int = 10,
                  wandb_watch_log_frequency:int = 1000, wandb_run_id:str = ""):
@@ -40,6 +40,7 @@ class WandB(Logger):
         self._values = defaultdict(AverageMeter)
         self._validation_batches = 0
 
+    @rank_zero_method
     def on_train_start(self, experiment):
         super().on_train_start(experiment)
 
@@ -60,6 +61,7 @@ class WandB(Logger):
     def log(self, key, value):
         self._values[key] += value
 
+    @rank_zero_method
     def on_train_batch_stop(self, experiment):
         if self.per_epoch:
             return
@@ -71,6 +73,7 @@ class WandB(Logger):
         wandb.log({k: v.average_value for (k, v) in self._values.items()})
         self._values.clear()
 
+    @rank_zero_method
     def on_epoch_start(self, experiment):
         if len(self._values) == 0:
             return
@@ -79,6 +82,7 @@ class WandB(Logger):
         wandb.log({k: v.average_value for (k, v) in self._values.items()})
         self._values.clear()
 
+    @rank_zero_method
     def on_train_stop(self, experiment):
         if len(self._values) == 0:
             return

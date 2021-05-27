@@ -100,7 +100,7 @@ if __name__ == "__main__":
             DistributedSetup,
             ModelCheckpoint,
             StdoutLogger,
-            #WandB
+            WandB
         ]
     )
     exp.run()
