@@ -98,7 +98,7 @@ if __name__ == "__main__":
         trainer=create_trainer(training_step, validation_step),
         callbacks=[
             DistributedSetup,
-            #ModelCheckpoint,
+            ModelCheckpoint,
             StdoutLogger,
             #WandB
         ]
