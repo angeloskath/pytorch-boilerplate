@@ -29,7 +29,7 @@ class DistributedSetup(Callback):
         self.our_hostname = distributed_our_hostname
         self.backend = distributed_backend
 
-    def on_train_start(self, experiment):
+    def on_prepare_experiment(self, experiment):
         if self.config_server == "":
             return
 
@@ -46,6 +46,11 @@ class DistributedSetup(Callback):
         )
 
         experiment.rank = rank
+
+    def on_train_start(self, experiment):
+        if self.config_server == "":
+            return
+
         experiment.model = DistributedDataParallel(experiment.model)
 
     def on_train_stop(self, experiment):
