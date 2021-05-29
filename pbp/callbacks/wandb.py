@@ -40,9 +40,11 @@ class WandB(Logger):
         self._values = defaultdict(AverageMeter)
         self._validation_batches = 0
 
-    @rank_zero_method
     def on_train_start(self, experiment):
         super().on_train_start(experiment)
+
+        if experiment.rank != 0:
+            return
 
         # Login to wandb
         wandb.login()
