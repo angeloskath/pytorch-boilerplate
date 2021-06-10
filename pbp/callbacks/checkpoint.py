@@ -16,12 +16,14 @@ class ModelCheckpoint(Callback):
         resume_from_checkpoint:bool = True,
         save_optimizer:bool = True,
         save_frequency:int = 1,
+        save_rank_zero:bool = False
     ):
         self.checkpoint_pattern = checkpoint_pattern
         self.checkpoint_file = checkpoint_file
         self.resume_from_checkpoint = resume_from_checkpoint
         self.save_optimizer = save_optimizer
         self.save_frequency = save_frequency
+        self.save_rank_zero = save_rank_zero
 
     def on_train_start(self, experiment):
         if not self.resume_from_checkpoint:
@@ -56,6 +58,9 @@ class ModelCheckpoint(Callback):
             experiment.optimizer.load_state_dict(data["optimizer_state"])
 
     def on_epoch_stop(self, experiment):
+        if self.save_rank_zero and experiment.rank != 0:
+            return
+
         if (experiment.trainer.current_epoch % self.save_frequency) != 0:
             return
 

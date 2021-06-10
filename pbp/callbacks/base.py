@@ -2,6 +2,9 @@ from ..factory import ObjectFactory, EmptyFactory, FactoryList, CallableFactory
 
 
 class Callback:
+    def on_prepare_experiment(self, experiment):
+        pass
+
     def on_train_start(self, experiment):
         pass
 
@@ -36,6 +39,10 @@ class Callback:
 class CallbackList(Callback):
     def __init__(self, *callbacks):
         self.callbacks = callbacks
+
+    def on_prepare_experiment(self, experiment):
+        for c in self.callbacks:
+            c.on_prepare_experiment(experiment)
 
     def on_train_start(self, experiment):
         for c in self.callbacks:

@@ -35,6 +35,8 @@ class Experiment:
         self.callback_factory = CallbackListFactory(*callbacks)
         self.trainer_factory = self._get_trainer_factory(trainer)
 
+        self.rank = 0
+
         self._items = {}
 
     @staticmethod
@@ -187,11 +189,14 @@ class Experiment:
         # Collect the arguments from all argument sources and build all the
         # components for the experiment
         arguments = self.arguments = self._collect_arguments(argv)
+        self.callback = self.callback_factory.from_dict(arguments)
+        self.callback.on_prepare_experiment(self)  # Call the prepare callback
+                                                   # before constructing
+                                                   # anything else
         self.train_data = self.train_data_factory.from_dict(arguments)
         self.val_data = self.val_data_factory.from_dict(arguments)
         self.model = self.model_factory.from_dict(arguments)
         self.optimizer = self.optimizer_factory.from_dict(arguments)
-        self.callback = self.callback_factory.from_dict(arguments)
         self.trainer = self.trainer_factory.from_dict(arguments)
 
         try:
